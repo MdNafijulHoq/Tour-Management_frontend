@@ -14,6 +14,8 @@ import { useLoginMutation } from "@/redux/features/auth/auth.api";
 import { useForm, type FieldValues, type SubmitHandler } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
+import { FcGoogle } from "react-icons/fc";
+import config from "@/config";
 
 export function LoginForm({
   className,
@@ -22,19 +24,28 @@ export function LoginForm({
   const navigate = useNavigate();
   const form = useForm();
   const [login] = useLoginMutation();
+
   const onSubmit: SubmitHandler<FieldValues> = async (data) => {
     console.log(data);
+    const userInfo = {
+      email: data.email,
+      password: data.password,
+    };
     try {
-      const res = await login(data).unwrap();
-      console.log(res);
+      const res = await login(userInfo).unwrap();
+      // console.log(res);
+      if (res.success) {
+        toast.success("Logged In Successfully");
+        navigate("/");
+      }
     } catch (err) {
-      console.error(err);
-      if (typeof err === "object" && err !== null && "status" in err) {
-        const status = (err as { status?: number }).status;
-        if (status === 401) {
-          toast.error("Your account is not verified");
-          navigate("/verify", { state: data?.email });
-        }
+      console.log(err);
+      if (err.data.message === "Password does not match") {
+        toast.error("Invalid Credentials");
+      }
+      if (err.data.message === "User is not verified") {
+        toast.error("Your account is not verified");
+        navigate("/verify", { state: data.email });
       }
     }
   };
@@ -95,11 +106,13 @@ export function LoginForm({
         </div>
 
         <Button
+          onClick={() => window.open(`${config.baseUrl}/auth/google`)}
           type="button"
           variant="outline"
           className="w-full cursor-pointer"
         >
-          Login with Google
+          {" "}
+          <FcGoogle /> Google
         </Button>
       </div>
       <div className="text-center text-sm">
