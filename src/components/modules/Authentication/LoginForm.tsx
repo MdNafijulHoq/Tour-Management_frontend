@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -11,21 +12,35 @@ import { Input } from "@/components/ui/input";
 import Password from "@/components/ui/Password";
 import { cn } from "@/lib/utils";
 import { useLoginMutation } from "@/redux/features/auth/auth.api";
-import { useForm, type FieldValues, type SubmitHandler } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { FcGoogle } from "react-icons/fc";
 import config from "@/config";
+import z from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+const loginSchema = z.object({
+  email: z.email(),
+  password: z.string().min(8, { error: "Password is too short" }),
+});
 
 export function LoginForm({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   const navigate = useNavigate();
-  const form = useForm();
   const [login] = useLoginMutation();
 
-  const onSubmit: SubmitHandler<FieldValues> = async (data) => {
+  const form = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const onSubmit = async (data: z.infer<typeof loginSchema>) => {
     console.log(data);
     const userInfo = {
       email: data.email,
@@ -38,7 +53,7 @@ export function LoginForm({
         toast.success("Logged In Successfully");
         navigate("/");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.log(err);
       if (err.data.message === "Password does not match") {
         toast.error("Invalid Credentials");
@@ -106,7 +121,9 @@ export function LoginForm({
         </div>
 
         <Button
-          onClick={() => window.open(`${config.baseUrl}/auth/google`)}
+          onClick={() =>
+            (window.location.href = `${config.baseUrl}/auth/google`)
+          }
           type="button"
           variant="outline"
           className="w-full cursor-pointer"
